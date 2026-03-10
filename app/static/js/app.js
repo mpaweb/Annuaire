@@ -311,49 +311,108 @@ const App = (() => {
   // ══════════════════════════════════════════════════════════════════════════
 
   function openSideContact(c) {
-    document.getElementById("sidePanelTitle").textContent = `${c.prenom} ${c.nom}`;
-    const ro = state.user.role === "viewer" ? "readonly" : "";
+    const initials = ((c.prenom||"").slice(0,1) + (c.nom||"").slice(0,1)).toUpperCase() || "?";
+    const ro       = state.user.role === "viewer" ? "readonly" : "";
+    const canWrite = state.user.role !== "viewer";
+
+    document.getElementById("sidePanelTitle").textContent = "";
+
+    // En-tête enrichi
+    document.getElementById("sidePanelHeader").innerHTML = `
+      <div class="sp-hero">
+        <div class="sp-avatar">${initials}</div>
+        <div class="sp-hero-info">
+          <div class="sp-name">${esc(c.prenom)} ${esc(c.nom)}</div>
+          <div class="sp-sub">${esc(c.fonction) || '<span style="color:var(--muted);font-style:italic">Fonction non renseignée</span>'}</div>
+          <div class="sp-company">🏢 ${esc(c.societe)}</div>
+        </div>
+        <button class="close-btn sp-close" id="btnCloseSide">✕</button>
+      </div>`;
+    document.getElementById("btnCloseSide").onclick = closeSide;
+
     document.getElementById("sidePanelBody").innerHTML = `
-      ${sf("Société",     "societe",    c.societe,    ro)}
-      ${sf("Nom",         "nom",        c.nom,        ro)}
-      ${sf("Prénom",      "prenom",     c.prenom,     ro)}
-      ${sf("Fonction",    "fonction",   c.fonction,   ro)}
-      ${sf("Email",       "email",      c.email,      ro)}
-      ${sf("Téléphone",   "telephone",  c.telephone,  ro)}
-      ${sf("Téléphone 2", "telephone2", c.telephone2, ro)}
-      ${sf("Notes",       "notes",      c.notes,      ro, true)}
-      <p style="font-size:11px;color:var(--muted);margin-top:8px">Modifié par <b>${esc(c.updated_by)}</b> le ${esc(c.updated_at)}</p>`;
+      <div class="sp-section-title">Identité</div>
+      <div class="sp-row">
+        ${sf("Nom",    "nom",    c.nom,    ro)}
+        ${sf("Prénom", "prenom", c.prenom, ro)}
+      </div>
+      ${sf("Société",  "societe",  c.societe,  ro)}
+      ${sf("Fonction", "fonction", c.fonction, ro)}
+
+      <div class="sp-section-title" style="margin-top:16px">Coordonnées</div>
+      ${sf("Email", "email", c.email, ro)}
+      <div class="sp-row">
+        ${sf("Téléphone",   "telephone",  c.telephone,  ro)}
+        ${sf("Téléphone 2", "telephone2", c.telephone2, ro)}
+      </div>
+
+      <div class="sp-section-title" style="margin-top:16px">Notes</div>
+      ${sf("", "notes", c.notes, ro, true)}
+
+      <div class="sp-meta">
+        Modifié par <b>${esc(c.updated_by)||"—"}</b> · ${esc(c.updated_at)||"—"}
+      </div>`;
+
     const act = document.getElementById("sidePanelActions");
-    act.innerHTML = state.user.role !== "viewer"
-      ? `<button class="btn btn-primary" style="flex:1" id="btnSaveSide">💾 Sauvegarder</button>
-         <button class="btn btn-danger" id="btnDelSide">🗑</button>` : "";
-    if (state.user.role !== "viewer") {
+    act.innerHTML = canWrite
+      ? `<button class="btn btn-primary sp-save-btn" id="btnSaveSide">💾 Sauvegarder</button>
+         <button class="btn btn-danger" id="btnDelSide" title="Supprimer">🗑</button>` : "";
+    if (canWrite) {
       document.getElementById("btnSaveSide").onclick = () => saveContact(c.id);
       document.getElementById("btnDelSide").onclick  = () => deleteContact(c.id);
     }
     document.getElementById("sidePanel").classList.remove("hidden");
+    _fillSideValues();
   }
 
   function openSideRoc(r) {
-    document.getElementById("sidePanelTitle").textContent = r.nom_client;
-    const ro = state.user.role === "viewer" ? "readonly" : "";
+    const ro       = state.user.role === "viewer" ? "readonly" : "";
+    const canWrite = state.user.role !== "viewer";
+
+    document.getElementById("sidePanelTitle").textContent = "";
+
+    document.getElementById("sidePanelHeader").innerHTML = `
+      <div class="sp-hero sp-hero-roc">
+        <div class="sp-avatar sp-avatar-roc">📋</div>
+        <div class="sp-hero-info">
+          <div class="sp-name">${esc(r.nom_client)}</div>
+          <div class="sp-sub">ROC : <b>${esc(r.roc)||"—"}</b></div>
+          <div class="sp-company">Trinity : ${esc(r.trinity)||"—"}</div>
+        </div>
+        <button class="close-btn sp-close" id="btnCloseSide">✕</button>
+      </div>`;
+    document.getElementById("btnCloseSide").onclick = closeSide;
+
     document.getElementById("sidePanelBody").innerHTML = `
-      ${sf("Nom Client",               "nom_client",               r.nom_client,               ro)}
-      ${sf("ROC",                      "roc",                      r.roc,                      ro)}
-      ${sf("Trinity",                  "trinity",                  r.trinity,                  ro)}
-      ${sf("Infogérance",              "infogerance",              r.infogerance,              ro)}
-      ${sf("Astreinte",                "astreinte",                r.astreinte,                ro)}
-      ${sf("Type Contrat",             "type_contrat",             r.type_contrat,             ro)}
-      ${sf("Date Anniversaire Contrat","date_anniversaire_contrat",r.date_anniversaire_contrat,ro)}`;
+      <div class="sp-section-title">Identification</div>
+      ${sf("Nom Client", "nom_client", r.nom_client, ro)}
+      <div class="sp-row">
+        ${sf("ROC",     "roc",     r.roc,     ro)}
+        ${sf("Trinity", "trinity", r.trinity, ro)}
+      </div>
+
+      <div class="sp-section-title" style="margin-top:16px">Contrat</div>
+      ${sf("Type de contrat",           "type_contrat",             r.type_contrat,             ro)}
+      ${sf("Date anniversaire contrat", "date_anniversaire_contrat",r.date_anniversaire_contrat,ro)}
+
+      <div class="sp-section-title" style="margin-top:16px">Support</div>
+      ${sf("Infogérance", "infogerance", r.infogerance, ro)}
+      ${sf("Astreinte",   "astreinte",   r.astreinte,   ro)}
+
+      <div class="sp-meta">
+        Modifié par <b>${esc(r.updated_by)||"—"}</b> · ${esc(r.updated_at)||"—"}
+      </div>`;
+
     const act = document.getElementById("sidePanelActions");
-    act.innerHTML = state.user.role !== "viewer"
-      ? `<button class="btn btn-primary" style="flex:1" id="btnSaveSide">💾 Sauvegarder</button>
-         <button class="btn btn-danger" id="btnDelSide">🗑</button>` : "";
-    if (state.user.role !== "viewer") {
+    act.innerHTML = canWrite
+      ? `<button class="btn btn-primary sp-save-btn" id="btnSaveSide">💾 Sauvegarder</button>
+         <button class="btn btn-danger" id="btnDelSide" title="Supprimer">🗑</button>` : "";
+    if (canWrite) {
       document.getElementById("btnSaveSide").onclick = () => saveRoc(r.id);
       document.getElementById("btnDelSide").onclick  = () => deleteRoc(r.id);
     }
     document.getElementById("sidePanel").classList.remove("hidden");
+    _fillSideValues();
   }
 
   function closeSide() {
@@ -706,13 +765,22 @@ const App = (() => {
   // ══════════════════════════════════════════════════════════════════════════
 
   function sf(label, name, value, readonly, textarea = false) {
-    const ro = readonly ? "readonly" : "";
-    if (textarea) return `<div class="field-group">
+    // On utilise data-value pour passer la valeur sans risque d'injection HTML
+    const ro  = readonly ? "readonly" : "";
+    const val = (value || "").replace(/\\/g,"\\\\").replace(/"/g,"&quot;");
+    if (textarea) return `<div class="field-group" data-field="${name}">
       <div class="field-label">${label}</div>
-      <textarea class="field-input" name="${name}" ${ro}>${esc(value||"")}</textarea></div>`;
-    return `<div class="field-group">
+      <textarea class="field-input" name="${name}" ${ro}></textarea></div>`;
+    return `<div class="field-group" data-field="${name}">
       <div class="field-label">${label}</div>
-      <input class="field-input" type="text" name="${name}" value="${esc(value||"")}" ${ro}></div>`;
+      <input class="field-input" type="text" name="${name}" data-val="${val}" ${ro}></div>`;
+  }
+
+  function _fillSideValues() {
+    // Injecte les valeurs via .value (évite tout problème d'encodage HTML)
+    document.querySelectorAll("#sidePanelBody input.field-input[data-val]").forEach(el => {
+      el.value = el.dataset.val.replace(/&quot;/g, '"');
+    });
   }
 
   function fi(label, name, value = "", placeholder = "") {
