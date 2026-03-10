@@ -1,0 +1,15 @@
+flask==3.0.3
+flask-sqlalchemy==3.1.1
+flask-login==0.6.3
+flask-wtf==1.2.1
+python-dotenv==1.0.1
+werkzeug==3.0.3
+reportlab==4.2.0
+openpyxl==3.1.2
+gunicorn==22.0.0
+wtforms==3.1.2
+sqlalchemy==2.0.31
+
+# Pilote PostgreSQL — précompilé, sans dépendance à pg_config / PostgreSQL installé
+psycopg2-binary==2.9.9 ; sys_platform != "win32"
+psycopg[binary]==3.2.10 ; sys_platform == "win32"

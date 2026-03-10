@@ -1,0 +1,16 @@
+.env
+*.db
+*.db.enc
+*.db.salt
+*.db.bak
+__pycache__/
+*.pyc
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+.DS_Store
+Thumbs.db
+instance/
+*.log

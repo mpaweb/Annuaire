@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="system">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Annuaire Neoedge</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+
+<!-- TOP BAR -->
+<header class="topbar">
+  <div class="logo">
+    <img id="logoImg" src="" alt="" style="display:none;height:28px;max-width:120px;object-fit:contain;border-radius:4px">
+    <div class="logo-dot" id="logoDot"></div>
+    <span id="logoText">Annuaire Neoedge</span>
+  </div>
+  <div class="topbar-search">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="globalSearch" placeholder="Rechercher société, nom, email…" autocomplete="off">
+  </div>
+  <div class="topbar-right">
+    <div class="badge-secure">🔒 HTTPS</div>
+
+    <!-- Sélecteur de thème -->
+    <div class="theme-switcher" id="themeSwitcher" title="Changer le thème">
+      <button class="theme-btn" data-theme="light"  title="Clair">☀️</button>
+      <button class="theme-btn" data-theme="system" title="Système">🖥️</button>
+      <button class="theme-btn" data-theme="dark"   title="Sombre">🌙</button>
+    </div>
+
+    <div class="user-pill" id="userPill">
+      <span class="user-avatar" id="userAvatar">?</span>
+      <span id="userName">…</span>
+      <span class="user-role" id="userRole"></span>
+    </div>
+    <button class="btn btn-ghost btn-sm" id="btnLogout">Déconnexion</button>
+  </div>
+</header>
+
+<!-- TABS -->
+<nav class="tabs">
+  <div class="tab active" data-tab="contacts">👤 Contacts</div>
+  <div class="tab" data-tab="rocs">📋 ROC</div>
+  <div class="tab admin-only" data-tab="admin" style="display:none">🗄️ Administration</div>
+  <div class="tab admin-only" data-tab="logs"  style="display:none">📜 Logs</div>
+</nav>
+
+<!-- MAIN -->
+<div class="app-body">
+
+  <!-- ── CONTACTS ── -->
+  <section class="tab-content active" id="tab-contacts">
+    <div class="toolbar">
+      <button class="btn btn-primary write-only" id="btnNewContact">＋ Nouveau contact</button>
+      <div class="toolbar-sep"></div>
+      <button class="btn btn-ghost" id="btnDupContacts">🔍 Doublons</button>
+      <div class="toolbar-sep"></div>
+      <button class="btn btn-green" onclick="App.export('contacts','csv')">↓ CSV</button>
+      <button class="btn btn-green" onclick="App.export('contacts','xlsx')">↓ Excel</button>
+      <button class="btn btn-green" onclick="App.export('contacts','pdf')">↓ PDF</button>
+      <div class="toolbar-sep"></div>
+      <button class="btn btn-danger write-only" id="btnDelContacts">🗑 Supprimer</button>
+    </div>
+    <div class="table-wrap">
+      <table id="contactsTable">
+        <thead><tr>
+          <th class="col-check"><input type="checkbox" id="checkAllContacts"></th>
+          <th data-sort="societe"  class="sortable sorted-asc">Société</th>
+          <th data-sort="nom"      class="sortable">Nom</th>
+          <th data-sort="prenom"   class="sortable">Prénom</th>
+          <th data-sort="fonction" class="sortable">Fonction</th>
+          <th data-sort="email"    class="sortable">Email</th>
+          <th>Téléphone</th>
+          <th>Notes</th>
+          <th>Modifié par</th>
+        </tr></thead>
+        <tbody id="contactsTbody"></tbody>
+      </table>
+    </div>
+    <div class="statusbar">
+      <span>👤 Total : <b id="contactTotal">0</b></span>
+      <span>🔍 Affichés : <b id="contactShown">0</b></span>
+      <span id="contactSelStatus"></span>
+      <span class="sync-badge">● Synchronisé</span>
+    </div>
+  </section>
+
+  <!-- ── ROC ── -->
+  <section class="tab-content" id="tab-rocs">
+    <div class="toolbar">
+      <button class="btn btn-primary write-only" id="btnNewRoc">＋ Nouveau ROC</button>
+      <div class="toolbar-sep"></div>
+      <button class="btn btn-ghost" id="btnDupRocs">🔍 Doublons</button>
+      <div class="toolbar-sep"></div>
+      <button class="btn btn-green" onclick="App.export('rocs','csv')">↓ CSV</button>
+      <button class="btn btn-green" onclick="App.export('rocs','xlsx')">↓ Excel</button>
+      <button class="btn btn-green" onclick="App.export('rocs','pdf')">↓ PDF</button>
+      <div class="toolbar-sep"></div>
+      <button class="btn btn-danger write-only" id="btnDelRocs">🗑 Supprimer</button>
+    </div>
+    <div class="table-wrap">
+      <table id="rocsTable">
+        <thead><tr>
+          <th class="col-check"><input type="checkbox" id="checkAllRocs"></th>
+          <th data-sort="nom_client"   class="sortable sorted-asc">Nom Client</th>
+          <th data-sort="roc"          class="sortable">ROC</th>
+          <th data-sort="trinity"      class="sortable">Trinity</th>
+          <th>Infogérance</th>
+          <th>Astreinte</th>
+          <th data-sort="type_contrat" class="sortable">Type Contrat</th>
+          <th>Date Anniversaire</th>
+          <th>Modifié par</th>
+        </tr></thead>
+        <tbody id="rocsTbody"></tbody>
+      </table>
+    </div>
+    <div class="statusbar">
+      <span>📋 Total : <b id="rocTotal">0</b></span>
+      <span>🔍 Affichés : <b id="rocShown">0</b></span>
+      <span class="sync-badge">● Synchronisé</span>
+    </div>
+  </section>
+
+  <!-- ── ADMIN ── -->
+  <section class="tab-content" id="tab-admin">
+    <div class="admin-scroll">
+
+      <!-- Ligne 1 : Stats + Actions rapides -->
+      <div class="admin-row">
+        <div class="admin-card">
+          <div class="admin-card-title">📊 Statistiques</div>
+          <div id="adminStats" class="stat-list">Chargement…</div>
+        </div>
+        <div class="admin-card">
+          <div class="admin-card-title">⚡ Actions rapides</div>
+          <div style="display:flex;flex-wrap:wrap;gap:10px">
+            <button class="btn btn-primary" onclick="App.createBackup()">💾 Sauvegarder maintenant</button>
+            <button class="btn btn-ghost"   onclick="App.loadAdminStats()">🔄 Rafraîchir</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ligne 2 : Sauvegardes -->
+      <div class="admin-card admin-card-full">
+        <div class="admin-card-title" style="display:flex;align-items:center;justify-content:space-between">
+          <span>💾 Historique des sauvegardes</span>
+          <button class="btn btn-primary btn-sm" onclick="App.createBackup()">+ Nouvelle sauvegarde</button>
+        </div>
+        <div id="backupsList">Chargement…</div>
+      </div>
+
+      <!-- Ligne 3 : Utilisateurs + Apparence -->
+      <div class="admin-row">
+        <div class="admin-card">
+          <div class="admin-card-title" style="display:flex;align-items:center;justify-content:space-between">
+            <span>👥 Utilisateurs</span>
+            <button class="btn btn-primary btn-sm" id="btnNewUser">＋ Ajouter</button>
+          </div>
+          <div id="usersList">Chargement…</div>
+        </div>
+
+        <div class="admin-card">
+          <div class="admin-card-title">🎨 Apparence</div>
+
+          <!-- Thème -->
+          <div style="margin-bottom:20px">
+            <div class="field-label" style="margin-bottom:8px">Thème de l'interface</div>
+            <div class="theme-choice-group" id="themeChoiceGroup">
+              <label class="theme-choice" data-val="light">
+                <input type="radio" name="themeChoice" value="light">
+                <div class="theme-preview theme-preview-light">
+                  <div class="tp-topbar"></div>
+                  <div class="tp-body"></div>
+                </div>
+                <span>☀️ Clair</span>
+              </label>
+              <label class="theme-choice" data-val="system">
+                <input type="radio" name="themeChoice" value="system">
+                <div class="theme-preview theme-preview-system">
+                  <div class="tp-topbar"></div>
+                  <div class="tp-body"></div>
+                </div>
+                <span>🖥️ Système</span>
+              </label>
+              <label class="theme-choice" data-val="dark">
+                <input type="radio" name="themeChoice" value="dark">
+                <div class="theme-preview theme-preview-dark">
+                  <div class="tp-topbar"></div>
+                  <div class="tp-body"></div>
+                </div>
+                <span>🌙 Sombre</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Logo -->
+          <div>
+            <div class="field-label" style="margin-bottom:8px">Logo de l'application</div>
+            <div class="logo-upload-area" id="logoUploadArea">
+              <div id="logoPreviewWrap" style="display:none;margin-bottom:12px;text-align:center">
+                <img id="logoPreviewAdmin" src="" alt="Logo" style="max-height:60px;max-width:200px;object-fit:contain;border-radius:6px">
+              </div>
+              <div id="logoPlaceholder" style="text-align:center;color:var(--muted);font-size:13px;margin-bottom:10px">
+                Aucun logo configuré
+              </div>
+              <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+                <label class="btn btn-ghost btn-sm" style="cursor:pointer">
+                  📁 Choisir un fichier
+                  <input type="file" id="logoFileInput" accept="image/png,image/jpeg,image/gif,image/svg+xml,image/webp" style="display:none">
+                </label>
+                <button class="btn btn-danger btn-sm" id="btnDeleteLogo" style="display:none" onclick="App.deleteLogo()">🗑 Supprimer</button>
+              </div>
+              <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px">
+                PNG, JPG, SVG, WEBP — max 2 Mo
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /admin-scroll -->
+  </section>
+
+  <!-- ── LOGS ── -->
+  <section class="tab-content" id="tab-logs">
+    <div class="toolbar">
+      <button class="btn btn-ghost btn-sm log-filter-btn active" data-action="">Tous</button>
+      <button class="btn btn-ghost btn-sm log-filter-btn" data-action="LOGIN">Connexions</button>
+      <button class="btn btn-ghost btn-sm log-filter-btn" data-action="CREATE">Créations</button>
+      <button class="btn btn-ghost btn-sm log-filter-btn" data-action="UPDATE">Modifications</button>
+      <button class="btn btn-ghost btn-sm log-filter-btn" data-action="DELETE">Suppressions</button>
+      <button class="btn btn-ghost btn-sm log-filter-btn" data-action="BACKUP">Sauvegardes</button>
+      <div class="toolbar-sep"></div>
+      <button class="btn btn-ghost" onclick="App.loadLogs()">🔄</button>
+      <button class="btn btn-danger" onclick="App.purgeLogs()">🧹 Purger</button>
+    </div>
+    <div class="log-wrap" id="logWrap"></div>
+  </section>
+
+  <!-- ── SIDE PANEL ── -->
+  <aside class="side-panel hidden" id="sidePanel">
+    <div class="side-header">
+      <h3 id="sidePanelTitle">Détail</h3>
+      <button class="close-btn" id="btnCloseSide">✕</button>
+    </div>
+    <div class="side-body" id="sidePanelBody"></div>
+    <div class="side-actions" id="sidePanelActions"></div>
+  </aside>
+
+</div><!-- /app-body -->
+
+<!-- MODAL -->
+<div id="modalOverlay" class="modal-overlay">
+  <div class="modal" id="modalBox">
+    <div class="modal-header">
+      <h2 id="modalTitle">Formulaire</h2>
+      <button class="close-btn" id="btnCloseModal">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer" id="modalFooter"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast hidden"></div>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
