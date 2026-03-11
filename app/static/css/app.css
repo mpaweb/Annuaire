@@ -83,16 +83,23 @@ body {
 /* Logo visible dans tous les thèmes */
 #logoImg {
   background: transparent;
-  border-radius: 4px;
-  padding: 2px;
-  transition: filter .25s;
+  border-radius: 6px;
+  padding: 2px 6px;
+  transition: background .25s, filter .25s;
 }
 [data-theme="light"] #logoImg,
 [data-theme="system"] #logoImg {
-  /* En mode clair : si le logo est sombre (ex: noir), on le rend visible avec un fond léger */
-  background: rgba(0,0,0,0.04);
-  border-radius: 4px;
-  padding: 2px 4px;
+  /* Logo texte blanc sur fond transparent : on met un fond sombre pour le rendre visible */
+  background: #1a1a2e;
+  border-radius: 6px;
+  padding: 3px 8px;
+}
+@media (prefers-color-scheme: light) {
+  [data-theme="system"] #logoImg {
+    background: #1a1a2e;
+    border-radius: 6px;
+    padding: 3px 8px;
+  }
 }
 .topbar-search {
   flex: 1; max-width: 440px;
