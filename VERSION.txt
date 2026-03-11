@@ -1,33 +1,39 @@
 Annuaire Neoedge — Historique des versions
 ==========================================
 
-v1.3.0 — 2026-03-11
-  CORRECTIONS
-  ~ Fix : restauration sauvegarde (synchronize_session, rollback sur erreur, gestion JSON corrompu)
-  ~ Fix : création utilisateur (res null, formErrors affiché, validation complète)
-  ~ Fix : modification utilisateur (res null, formErrors affiché)
+v1.4.0 — 2026-03-11
+  SÉCURITÉ
+  + Rate limiting login (20 req/min via flask-limiter)
+  + Brute force : blocage IP après 5 tentatives pendant 15 min
+  + Compteur de tentatives restantes affiché à l'utilisateur
+  + Echecs de connexion loggués dans l'audit (LOGIN_FAIL)
+  + Headers HTTP sécurité : X-Frame-Options, X-Content-Type-Options,
+    Content-Security-Policy, Referrer-Policy, Permissions-Policy
+  + HSTS activé automatiquement en production (HTTPS forcé 1 an)
+  + Cookie session : HttpOnly=True, SameSite=Lax, Secure en prod
+  + Timeout session 8h d'inactivité
+  + Vérification SECRET_KEY au démarrage (blocage si insécurisée en prod)
+  + Mot de passe admin par défaut sécurisé (ChangeMe2024! au lieu de "admin")
+  + change-password : vérification que nouveau != ancien
+  + logout : session.clear() complet
+  + login.html : autocomplete sécurisé, affichage blocage brute force
 
-  NOUVEAUTÉS
-  + Choix de base de données (SQLite ou PostgreSQL) depuis le panneau Admin → Config DB
-  + Test de connexion avant de sauvegarder la config DB
-  + Diagnostic DB : état, taille, nb enregistrements par table, vérifications qualité
-  + Diagnostic DB : boutons Optimiser et Nettoyer (VACUUM SQLite)
+v1.3.0 — 2026-03-11
+  ~ Fix restauration sauvegarde (synchronize_session, rollback, JSON corrompu)
+  ~ Fix création/modification utilisateur (res null, formErrors, validation)
+  + Diagnostic DB : état, taille, vérifications qualité, Optimiser, VACUUM
+  + Config DB : choix SQLite/PostgreSQL, test connexion
 
 v1.2.0 — 2026-03-11
-  NOUVEAUTÉS
-  + Doublons : bouton "Ignorer ce groupe" (aucune suppression forcée)
-  + Colonnes : afficher/masquer via menu ⚙ Colonnes (mémorisé)
-  + Colonnes : colonne "Téléphone 2" disponible pour les contacts
-  + Filtres  : filtrer les lignes par colonne en temps réel
+  + Doublons : bouton Ignorer ce groupe
+  + Colonnes : afficher/masquer (mémorisé), Téléphone 2 disponible
+  + Filtres par colonne en temps réel
 
 v1.1.0 — 2026-03-11
-  CORRECTIONS
-  ~ Fix : ouverture du panneau de modification (sidePanelTitle inexistant)
-  ~ Fix : fermeture du panneau (btnCloseSide dynamique)
-  ~ Fix : notes non remplies à l'édition (textarea sans data-val)
-  ~ Fix : création contact/ROC (crash si res null)
-  ~ Fix : thème dark par défaut + mémorisation localStorage
-  ~ Fix : logo mieux visible en mode light
+  ~ Fix ouverture/fermeture panneau modification
+  ~ Fix notes non remplies à l'édition
+  ~ Fix création contact/ROC (crash res null)
+  ~ Thème dark par défaut + mémorisation localStorage
+  ~ Logo visible en mode light
 
 v1.0.0 — Version originale
-  Version initiale du projet.
