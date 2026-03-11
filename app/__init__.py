@@ -31,13 +31,13 @@ def create_app() -> Flask:
     secret_key = os.environ.get("SECRET_KEY", "dev-secret-insecure")
     flask_env  = os.environ.get("FLASK_ENV", "production")
     if secret_key in _INSECURE_KEYS:
-        if flask_env == "production":
-            print("[SECURITE CRITIQUE] SECRET_KEY non configurée ! "
-                  "Générez une clé avec : python -c \"import secrets; print(secrets.token_hex(32))\" "
-                  "et ajoutez-la dans .env", file=sys.stderr)
-            sys.exit(1)
-        else:
-            print("[AVERTISSEMENT] SECRET_KEY non sécurisée — acceptable uniquement en développement.")
+        msg = ("[SECURITE] SECRET_KEY non configuree ! "
+               "Generez une cle : python -c \"import secrets; print(secrets.token_hex(32))\" "
+               "et ajoutez SECRET_KEY=... dans vos variables d'environnement.")
+        print(msg, file=sys.stderr)
+        # En production on continue mais avec un avertissement visible
+        # Pour bloquer completement, remplacez ces lignes par : sys.exit(1)
+        secret_key = "fallback-" + os.urandom(16).hex()  # Clé temporaire unique par démarrage
 
     # ── Configuration de base ──────────────────────────────────────────────────
     app.config["SECRET_KEY"]                  = secret_key
