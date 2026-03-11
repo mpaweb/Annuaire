@@ -1,26 +1,31 @@
 Annuaire Neoedge — Historique des versions
 ==========================================
 
-v1.4.1 — 2026-03-11
+v1.4.2 — 2026-03-11
   CORRECTIONS
-  ~ Fix démarrage lent : navigateur ouvert après 3s (Flask a le temps de démarrer)
-  ~ Fix localhost vs 127.0.0.1 : évite la résolution IPv6 lente sur Windows
-  ~ Suppression du warning flask-limiter au démarrage (storage_uri explicite)
+  ~ Fix CRITIQUE : flask-limiter manquant dans le venv — start.bat installe
+    automatiquement les nouvelles dependances au demarrage
+  ~ Fix : SECRET_KEY decommentee dans .env (etait commentee = warning securite)
+  ~ Fix : update.bat detecte automatiquement la branche master ou main
+  ~ Fix : update.bat utilise 127.0.0.1 au lieu de localhost
+
+v1.4.1 — 2026-03-11
+  ~ Fix demarrage lent (navigateur ouvert apres 3s)
+  ~ Fix localhost -> 127.0.0.1 (evite resolution IPv6 lente sur Windows)
+  ~ Suppression warning flask-limiter
 
 v1.4.0 — 2026-03-11
-  + Rate limiting login, brute force, headers HTTP, session timeout 8h
-  + Vérification SECRET_KEY au démarrage
-  ~ Fix création/modification utilisateurs
-  ~ Fix restauration sauvegarde
+  + Rate limiting, brute force, headers HTTP, session timeout 8h
+  + Verification SECRET_KEY au demarrage
 
 v1.3.0 — 2026-03-11
   + Diagnostic DB, Config DB
-  ~ Fix restauration, création users
+  ~ Fix restauration, creation users
 
 v1.2.0 — 2026-03-11
   + Doublons Ignorer, colonnes afficher/masquer, filtres
 
 v1.1.0 — 2026-03-11
-  ~ Fix panneau modification, thème dark, logo light
+  ~ Fix panneau modification, theme dark, logo light
 
 v1.0.0 — Version originale
