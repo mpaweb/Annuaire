@@ -1211,6 +1211,9 @@ const App = (() => {
     // Bouton utilisateur
     document.getElementById("btnNewUser")?.addEventListener("click", openNewUserModal);
 
+    // Import CSV dropzone
+    _initImportDropzone();
+
     // Déconnexion
     document.getElementById("btnLogout").addEventListener("click", async () => {
       await api("POST", "/logout"); location.href = "/login";
@@ -1366,6 +1369,294 @@ const App = (() => {
     });
   }
 
+  // ══════════════════════════════════════════════════════════════════════════
+  // IMPORT CSV
+  // ══════════════════════════════════════════════════════════════════════════
+
+  let _importFile = null;   // fichier sélectionné en attente
+
+  function switchImportTab(tab) {
+    document.querySelectorAll(".import-tab").forEach(t => t.classList.toggle("active", t.dataset.tab === tab));
+    document.getElementById("importTabCsv").style.display = tab === "csv" ? "" : "none";
+    document.getElementById("importTabPdf").style.display = tab === "pdf" ? "" : "none";
+  }
+
+  function _initImportDropzone() {
+    const input    = document.getElementById("importFileInput");
+    const dropzone = document.getElementById("importDropzone");
+    if (!input || !dropzone) return;
+
+    dropzone.addEventListener("click", () => input.click());
+    dropzone.addEventListener("dragover",  e => { e.preventDefault(); dropzone.classList.add("dragover"); });
+    dropzone.addEventListener("dragleave", () => dropzone.classList.remove("dragover"));
+    dropzone.addEventListener("drop", e => {
+      e.preventDefault();
+      dropzone.classList.remove("dragover");
+      const file = e.dataTransfer.files[0];
+      if (file) _handleImportFile(file);
+    });
+    input.addEventListener("change", () => {
+      if (input.files[0]) _handleImportFile(input.files[0]);
+    });
+
+    // Dropzone PDF
+    const pdfInput    = document.getElementById("importPdfFileInput");
+    const pdfDropzone = document.getElementById("importPdfDropzone");
+    if (!pdfInput || !pdfDropzone) return;
+
+    pdfDropzone.addEventListener("click", () => pdfInput.click());
+    pdfDropzone.addEventListener("dragover",  e => { e.preventDefault(); pdfDropzone.classList.add("dragover"); });
+    pdfDropzone.addEventListener("dragleave", () => pdfDropzone.classList.remove("dragover"));
+    pdfDropzone.addEventListener("drop", e => {
+      e.preventDefault();
+      pdfDropzone.classList.remove("dragover");
+      const file = e.dataTransfer.files[0];
+      if (file) _handlePdfImportFile(file);
+    });
+    pdfInput.addEventListener("change", () => {
+      if (pdfInput.files[0]) _handlePdfImportFile(pdfInput.files[0]);
+    });
+  }
+
+  async function _handleImportFile(file) {
+    _importFile = file;
+    const table = document.getElementById("importTable").value;
+
+    // Mise à jour de la dropzone
+    document.getElementById("importDropzoneText").innerHTML = `
+      <div style="font-size:22px;margin-bottom:6px">📄</div>
+      <div style="font-weight:600">${esc(file.name)}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:3px">${(file.size/1024).toFixed(1)} Ko</div>`;
+
+    // Aperçu
+    const fd = new FormData();
+    fd.append("file",  file);
+    fd.append("table", table);
+
+    const res = await fetch("/api/export/import/csv/preview", { method: "POST", body: fd });
+    const j   = await res.json();
+
+    document.getElementById("importPlaceholder").style.display  = "none";
+    document.getElementById("importResultWrap").style.display   = "none";
+    document.getElementById("importPreviewWrap").style.display  = "";
+
+    if (!res.ok) {
+      document.getElementById("importPreviewInfo").innerHTML =
+        `<span style="color:var(--red)">⚠ ${esc(j.error)}</span>`;
+      document.getElementById("importPreviewTable").innerHTML = "";
+      document.getElementById("btnDoImport").disabled = true;
+      return;
+    }
+
+    const delimLabel = { ";": "point-virgule (;)", ",": "virgule (,)", "|": "pipe (|)", "\t": "tabulation" };
+    const missingHtml = j.missing_cols.length
+      ? `<span style="color:var(--amber)">⚠ Colonnes manquantes : ${j.missing_cols.join(", ")}</span>`
+      : `<span style="color:var(--green)">✅ Toutes les colonnes reconnues</span>`;
+
+    document.getElementById("importPreviewInfo").innerHTML = `
+      <div>📊 <b>${j.total_rows}</b> ligne(s) détectées — Délimiteur : <b>${delimLabel[j.delimiter] || j.delimiter}</b></div>
+      <div>✔ Colonnes reconnues : <b>${j.recognized_cols.join(", ") || "aucune"}</b></div>
+      <div>${missingHtml}</div>`;
+
+    // Mini tableau aperçu
+    if (j.preview.length) {
+      const cols = j.recognized_cols;
+      const thead = `<tr>${cols.map(c => `<th>${esc(c)}</th>`).join("")}</tr>`;
+      const tbody = j.preview.map(row =>
+        `<tr>${cols.map(c => `<td>${esc(row[c] || "")}</td>`).join("")}</tr>`
+      ).join("");
+      document.getElementById("importPreviewTable").innerHTML =
+        `<table class="import-table"><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
+    }
+
+    document.getElementById("btnDoImport").disabled = j.recognized_cols.length === 0;
+  }
+
+  async function doImport() {
+    if (!_importFile) return;
+    const table = document.getElementById("importTable").value;
+    const mode  = document.getElementById("importMode").value;
+
+    if (mode === "replace") {
+      if (!confirm(`⚠ Mode REMPLACEMENT : toutes les données "${table}" existantes seront supprimées avant l'import.\n\nConfirmer ?`)) return;
+    }
+
+    const btn = document.getElementById("btnDoImport");
+    btn.disabled   = true;
+    btn.textContent = "⏳ Import en cours…";
+
+    const fd = new FormData();
+    fd.append("file",  _importFile);
+    fd.append("table", table);
+    fd.append("mode",  mode);
+
+    const res = await fetch("/api/export/import/csv", { method: "POST", body: fd });
+    const j   = await res.json();
+
+    document.getElementById("importPreviewWrap").style.display = "none";
+    document.getElementById("importResultWrap").style.display  = "";
+
+    if (!res.ok || !j.ok) {
+      document.getElementById("importResult").innerHTML = `
+        <div class="import-result import-result-err">
+          <div style="font-size:24px;margin-bottom:8px">❌</div>
+          <div><b>Erreur lors de l'import</b></div>
+          <div style="margin-top:6px;font-size:12.5px">${esc(j.error || "Erreur inconnue")}</div>
+        </div>`;
+    } else {
+      document.getElementById("importResult").innerHTML = `
+        <div class="import-result import-result-ok">
+          <div style="font-size:24px;margin-bottom:8px">✅</div>
+          <div><b>${j.inserted} enregistrement(s) importé(s)</b></div>
+          ${j.skipped ? `<div style="margin-top:4px;font-size:12px;color:var(--muted)">${j.skipped} ligne(s) ignorée(s) (vides)</div>` : ""}
+          <div style="margin-top:4px;font-size:12px">Mode : ${j.mode === "replace" ? "Remplacement" : "Ajout"} — Délimiteur détecté : <b>${j.delimiter}</b></div>
+        </div>`;
+      // Recharger les données
+      if (table === "contacts") loadContacts();
+      else loadRocs();
+      loadAdminStats();
+    }
+    btn.disabled    = false;
+    btn.textContent = "✅ Importer";
+  }
+
+  function resetImport() {
+    _importFile = null;
+    document.getElementById("importFileInput").value     = "";
+    document.getElementById("importDropzoneText").innerHTML = `
+      <div style="font-size:28px;margin-bottom:8px">📂</div>
+      <div>Glissez un fichier CSV ici</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">ou cliquez pour parcourir</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:2px">Délimiteurs supportés : ; , | tabulation</div>`;
+    document.getElementById("importPreviewWrap").style.display = "none";
+    document.getElementById("importResultWrap").style.display  = "none";
+    document.getElementById("importPlaceholder").style.display = "";
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // IMPORT PDF
+  // ══════════════════════════════════════════════════════════════════════════
+
+  let _importPdfFile = null;
+
+  async function _handlePdfImportFile(file) {
+    if (!file.name.toLowerCase().endsWith(".pdf")) {
+      toast("Le fichier doit être un PDF (.pdf)", "err"); return;
+    }
+    _importPdfFile = file;
+
+    document.getElementById("importPdfDropzoneText").innerHTML = `
+      <div style="font-size:22px;margin-bottom:6px">📑</div>
+      <div style="font-weight:600">${esc(file.name)}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:3px">${(file.size/1024).toFixed(1)} Ko — Analyse en cours…</div>`;
+
+    const table = document.getElementById("importPdfTable").value;
+    const fd    = new FormData();
+    fd.append("file",  file);
+    fd.append("table", table);
+
+    document.getElementById("importPdfPlaceholder").style.display  = "none";
+    document.getElementById("importPdfResultWrap").style.display   = "none";
+    document.getElementById("importPdfPreviewWrap").style.display  = "none";
+
+    const res = await fetch("/api/export/import/pdf/preview", { method: "POST", body: fd });
+    const j   = await res.json();
+
+    document.getElementById("importPdfDropzoneText").innerHTML = `
+      <div style="font-size:22px;margin-bottom:6px">📑</div>
+      <div style="font-weight:600">${esc(file.name)}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:3px">${(file.size/1024).toFixed(1)} Ko</div>`;
+
+    document.getElementById("importPdfPreviewWrap").style.display = "";
+
+    if (!res.ok) {
+      document.getElementById("importPdfPreviewInfo").innerHTML =
+        `<span style="color:var(--red)">⚠ ${esc(j.error)}</span>`;
+      document.getElementById("importPdfPreviewTable").innerHTML = "";
+      document.getElementById("btnDoPdfImport").disabled = true;
+      return;
+    }
+
+    const methodLabel = j.method === "tableau" ? "🗂 Tableau détecté" : "🗃 Fiches détectées";
+    document.getElementById("importPdfPreviewInfo").innerHTML = `
+      <div>📄 <b>${j.pages}</b> page(s) analysée(s) — <b>${j.total_rows}</b> enregistrement(s) trouvé(s)</div>
+      <div>${methodLabel} — Champs : <b>${j.fields_found.join(", ") || "aucun"}</b></div>`;
+
+    if (j.preview.length) {
+      const cols = j.fields_found;
+      const thead = `<tr>${cols.map(c => `<th>${esc(c)}</th>`).join("")}</tr>`;
+      const tbody = j.preview.map(row =>
+        `<tr>${cols.map(c => `<td>${esc(row[c] || "")}</td>`).join("")}</tr>`
+      ).join("");
+      document.getElementById("importPdfPreviewTable").innerHTML =
+        `<table class="import-table"><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
+    }
+
+    document.getElementById("btnDoPdfImport").disabled = j.total_rows === 0;
+  }
+
+  async function doPdfImport() {
+    if (!_importPdfFile) return;
+    const table = document.getElementById("importPdfTable").value;
+    const mode  = document.getElementById("importPdfMode").value;
+
+    if (mode === "replace") {
+      if (!confirm(`⚠ Mode REMPLACEMENT : toutes les données "${table}" existantes seront supprimées.\n\nConfirmer ?`)) return;
+    }
+
+    const btn = document.getElementById("btnDoPdfImport");
+    btn.disabled    = true;
+    btn.textContent = "⏳ Import en cours…";
+
+    const fd = new FormData();
+    fd.append("file",  _importPdfFile);
+    fd.append("table", table);
+    fd.append("mode",  mode);
+
+    const res = await fetch("/api/export/import/pdf", { method: "POST", body: fd });
+    const j   = await res.json();
+
+    document.getElementById("importPdfPreviewWrap").style.display = "none";
+    document.getElementById("importPdfResultWrap").style.display  = "";
+
+    if (!res.ok || !j.ok) {
+      document.getElementById("importPdfResult").innerHTML = `
+        <div class="import-result import-result-err">
+          <div style="font-size:24px;margin-bottom:8px">❌</div>
+          <div><b>Erreur lors de l'import</b></div>
+          <div style="margin-top:6px;font-size:12.5px">${esc(j.error || "Erreur inconnue")}</div>
+        </div>`;
+    } else {
+      document.getElementById("importPdfResult").innerHTML = `
+        <div class="import-result import-result-ok">
+          <div style="font-size:24px;margin-bottom:8px">✅</div>
+          <div><b>${j.inserted} enregistrement(s) importé(s)</b></div>
+          ${j.skipped ? `<div style="margin-top:4px;font-size:12px;color:var(--muted)">${j.skipped} ligne(s) ignorée(s)</div>` : ""}
+          <div style="margin-top:4px;font-size:12px">
+            Méthode : <b>${j.method}</b> — ${j.pages} page(s) — Mode : ${j.mode === "replace" ? "Remplacement" : "Ajout"}
+          </div>
+        </div>`;
+      if (table === "contacts") loadContacts();
+      else loadRocs();
+      loadAdminStats();
+    }
+    btn.disabled    = false;
+    btn.textContent = "✅ Importer";
+  }
+
+  function resetPdfImport() {
+    _importPdfFile = null;
+    document.getElementById("importPdfFileInput").value = "";
+    document.getElementById("importPdfDropzoneText").innerHTML = `
+      <div style="font-size:28px;margin-bottom:8px">📑</div>
+      <div>Glissez un fichier PDF ici</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">ou cliquez pour parcourir</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:2px">Max 10 Mo — texte sélectionnable requis</div>`;
+    document.getElementById("importPdfPreviewWrap").style.display = "none";
+    document.getElementById("importPdfResultWrap").style.display  = "none";
+    document.getElementById("importPdfPlaceholder").style.display = "";
+  }
+
   // ── API publique ─────────────────────────────────────────────────────────
   return {
     init,
@@ -1384,6 +1675,11 @@ const App = (() => {
     _ignoreGroup,
     openDbDiagnostic,
     openDbConfig,
+    switchImportTab,
+    doImport,
+    resetImport,
+    doPdfImport,
+    resetPdfImport,
   };
 })();
 

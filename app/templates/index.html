@@ -274,6 +274,152 @@
         </div>
       </div>
 
+      <!-- Ligne 4 : Import -->
+      <div class="admin-card admin-card-full">
+        <div class="admin-card-title">📥 Importation de données</div>
+        <div class="import-tabs">
+          <button class="import-tab active" data-tab="csv" onclick="App.switchImportTab('csv')">📄 Import CSV</button>
+          <button class="import-tab"        data-tab="pdf" onclick="App.switchImportTab('pdf')">📑 Import PDF</button>
+        </div>
+
+        <!-- Onglet CSV -->
+        <div id="importTabCsv" class="import-tab-content">
+          <div class="import-grid">
+            <div class="import-col">
+              <div class="field-label" style="margin-bottom:8px">Table cible</div>
+              <select class="form-input" id="importTable">
+                <option value="contacts">👤 Contacts</option>
+                <option value="rocs">📋 ROC</option>
+              </select>
+
+              <div class="field-label" style="margin-top:14px;margin-bottom:8px">Mode d'import</div>
+              <select class="form-input" id="importMode">
+                <option value="append">➕ Ajouter aux données existantes</option>
+                <option value="replace">🔄 Remplacer toutes les données</option>
+              </select>
+
+              <div class="field-label" style="margin-top:14px;margin-bottom:8px">Fichier CSV</div>
+              <label class="import-dropzone" id="importDropzone">
+                <div id="importDropzoneText">
+                  <div style="font-size:28px;margin-bottom:8px">📂</div>
+                  <div>Glissez un fichier CSV ici</div>
+                  <div style="font-size:11px;color:var(--muted);margin-top:4px">ou cliquez pour parcourir</div>
+                  <div style="font-size:10px;color:var(--muted);margin-top:2px">Délimiteurs supportés : ; , | tabulation</div>
+                </div>
+                <input type="file" id="importFileInput" accept=".csv,.txt" style="display:none">
+              </label>
+            </div>
+
+            <div class="import-col">
+              <div id="importPreviewWrap" style="display:none">
+                <div class="field-label" style="margin-bottom:8px">Aperçu du fichier</div>
+                <div id="importPreviewInfo" class="import-info-box"></div>
+                <div id="importPreviewTable" class="import-preview-table"></div>
+                <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+                  <button class="btn btn-primary" id="btnDoImport" onclick="App.doImport()">✅ Importer</button>
+                  <button class="btn btn-ghost"   onclick="App.resetImport()">✕ Annuler</button>
+                </div>
+              </div>
+              <div id="importResultWrap" style="display:none">
+                <div id="importResult"></div>
+                <button class="btn btn-ghost" style="margin-top:12px" onclick="App.resetImport()">↩ Nouvel import</button>
+              </div>
+              <div id="importPlaceholder" style="color:var(--muted);font-size:13px;padding:20px 0">
+                Sélectionnez un fichier pour voir un aperçu avant l'import.
+              </div>
+            </div>
+          </div>
+
+          <!-- Aide colonnes CSV -->
+          <details class="import-help">
+            <summary>📖 Colonnes reconnues automatiquement</summary>
+            <div class="import-help-body">
+              <div>
+                <b>Contacts</b> — noms acceptés (insensible à la casse) :<br>
+                <code>societe</code>, <code>nom</code>, <code>prenom</code>, <code>fonction</code>,
+                <code>email</code>, <code>telephone</code>, <code>telephone2</code>, <code>notes</code>
+              </div>
+              <div style="margin-top:10px">
+                <b>ROC</b> — noms acceptés :<br>
+                <code>nom_client</code>, <code>roc</code>, <code>trinity</code>, <code>infogerance</code>,
+                <code>astreinte</code>, <code>type_contrat</code>, <code>date_anniversaire_contrat</code>
+              </div>
+              <div style="margin-top:10px;color:var(--muted);font-size:11.5px">
+                Les colonnes non reconnues sont ignorées. Encodage UTF-8 et Latin-1 supporté.
+              </div>
+            </div>
+          </details>
+        </div>
+
+        <!-- Onglet PDF -->
+        <div id="importTabPdf" class="import-tab-content" style="display:none">
+          <div class="import-grid">
+            <div class="import-col">
+              <div class="field-label" style="margin-bottom:8px">Table cible</div>
+              <select class="form-input" id="importPdfTable">
+                <option value="contacts">👤 Contacts</option>
+                <option value="rocs">📋 ROC</option>
+              </select>
+
+              <div class="field-label" style="margin-top:14px;margin-bottom:8px">Mode d'import</div>
+              <select class="form-input" id="importPdfMode">
+                <option value="append">➕ Ajouter aux données existantes</option>
+                <option value="replace">🔄 Remplacer toutes les données</option>
+              </select>
+
+              <div class="field-label" style="margin-top:14px;margin-bottom:8px">Fichier PDF</div>
+              <label class="import-dropzone" id="importPdfDropzone">
+                <div id="importPdfDropzoneText">
+                  <div style="font-size:28px;margin-bottom:8px">📑</div>
+                  <div>Glissez un fichier PDF ici</div>
+                  <div style="font-size:11px;color:var(--muted);margin-top:4px">ou cliquez pour parcourir</div>
+                  <div style="font-size:10px;color:var(--muted);margin-top:2px">Max 10 Mo — texte sélectionnable requis</div>
+                </div>
+                <input type="file" id="importPdfFileInput" accept=".pdf" style="display:none">
+              </label>
+            </div>
+
+            <div class="import-col">
+              <div id="importPdfPreviewWrap" style="display:none">
+                <div class="field-label" style="margin-bottom:8px">Aperçu de l'extraction</div>
+                <div id="importPdfPreviewInfo" class="import-info-box"></div>
+                <div id="importPdfPreviewTable" class="import-preview-table"></div>
+                <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+                  <button class="btn btn-primary" id="btnDoPdfImport" onclick="App.doPdfImport()">✅ Importer</button>
+                  <button class="btn btn-ghost"   onclick="App.resetPdfImport()">✕ Annuler</button>
+                </div>
+              </div>
+              <div id="importPdfResultWrap" style="display:none">
+                <div id="importPdfResult"></div>
+                <button class="btn btn-ghost" style="margin-top:12px" onclick="App.resetPdfImport()">↩ Nouvel import</button>
+              </div>
+              <div id="importPdfPlaceholder" style="color:var(--muted);font-size:13px;padding:20px 0">
+                Sélectionnez un fichier PDF pour voir les données extraites avant l'import.
+              </div>
+            </div>
+          </div>
+
+          <!-- Aide PDF -->
+          <details class="import-help">
+            <summary>📖 Comment fonctionne l'import PDF ?</summary>
+            <div class="import-help-body">
+              <div>L'import PDF analyse automatiquement le contenu du fichier avec deux stratégies :</div>
+              <div style="margin-top:8px">
+                <b>1. Détection tableau</b> — si le PDF contient un tableau avec des en-têtes reconnus
+                (ex: exporté depuis Excel ou un logiciel métier).
+              </div>
+              <div style="margin-top:6px">
+                <b>2. Détection par fiches</b> (contacts uniquement) — si le PDF contient des blocs
+                séparés par des sauts de ligne, chacun avec email, téléphone, nom…
+              </div>
+              <div style="margin-top:10px;color:var(--amber);font-size:11.5px">
+                ⚠️ Le PDF doit contenir du texte sélectionnable. Les PDFs scannés (images) ne sont pas supportés.
+              </div>
+            </div>
+          </details>
+        </div>
+      </div>
+
     </div><!-- /admin-scroll -->
   </section>
 
