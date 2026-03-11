@@ -663,26 +663,33 @@ const App = (() => {
   function openNewUserModal() {
     openModal("Nouvel utilisateur", `
       <div class="form-grid">
-        ${fi("Identifiant", "username",  "", "prenom.nom")}
-        ${fi("Nom complet", "full_name", "", "Jean Dupont")}
+        ${fi("Identifiant ★", "username",  "", "prenom.nom")}
+        ${fi("Nom complet",   "full_name", "", "Jean Dupont")}
       </div>
-      ${fi("Email",         "email",    "", "jean@neoedge.fr")}
-      ${fi("Mot de passe",  "password", "", "min. 8 caractères")}
+      ${fi("Email ★",        "email",    "", "jean@neoedge.fr")}
+      ${fi("Mot de passe ★", "password", "", "min. 8 caractères")}
       <div class="form-row">
         <label class="form-label">Rôle</label>
         <select class="form-input" name="role">
-          <option value="viewer">Viewer — lecture seule</option>
-          <option value="editor">Editor — lecture + écriture</option>
-          <option value="admin">Admin — accès complet</option>
+          <option value="viewer">👁 Viewer — lecture seule</option>
+          <option value="editor">✏️ Editor — lecture + écriture</option>
+          <option value="admin">🔑 Admin — accès complet</option>
         </select>
-      </div>`,
+      </div>
+      <div id="formErrors"></div>`,
       [{ label:"Annuler", cls:"btn-ghost",   action: closeModal },
        { label:"Créer",   cls:"btn-primary", action: async () => {
           const d = readModalFields();
-          if (!d.username || !d.password || !d.email) { showModalErrors(["Tous les champs sont requis."]); return; }
+          const errs = [];
+          if (!d.username?.trim()) errs.push("L'identifiant est obligatoire.");
+          if (!d.email?.trim())    errs.push("L'email est obligatoire.");
+          if (!d.password?.trim()) errs.push("Le mot de passe est obligatoire.");
+          else if (d.password.length < 8) errs.push("Le mot de passe doit faire au moins 8 caractères.");
+          if (errs.length) { showModalErrors(errs); return; }
           const res = await api("POST", "/api/admin/users", d);
-          const j   = await res.json();
-          if (!res.ok) { showModalErrors([j.error]); return; }
+          if (!res) { showModalErrors(["Erreur réseau, veuillez réessayer."]); return; }
+          const j = await res.json();
+          if (!res.ok) { showModalErrors([j.error || "Erreur inconnue"]); return; }
           toast("Utilisateur créé ✓"); closeModal(); loadUsers();
        }}]);
   }
@@ -699,9 +706,9 @@ const App = (() => {
       <div class="form-row">
         <label class="form-label">Rôle</label>
         <select class="form-input" name="role">
-          <option value="viewer" ${u.role==="viewer"?"selected":""}>Viewer</option>
-          <option value="editor" ${u.role==="editor"?"selected":""}>Editor</option>
-          <option value="admin"  ${u.role==="admin" ?"selected":""}>Admin</option>
+          <option value="viewer" ${u.role==="viewer"?"selected":""}>👁 Viewer — lecture seule</option>
+          <option value="editor" ${u.role==="editor"?"selected":""}>✏️ Editor — lecture + écriture</option>
+          <option value="admin"  ${u.role==="admin" ?"selected":""}>🔑 Admin — accès complet</option>
         </select>
       </div>
       <div class="form-row">
@@ -710,23 +717,174 @@ const App = (() => {
           <option value="1" ${u.active?"selected":""}>Oui</option>
           <option value="0" ${!u.active?"selected":""}>Non (désactivé)</option>
         </select>
-      </div>`,
+      </div>
+      <div id="formErrors"></div>`,
       [{ label:"Annuler",     cls:"btn-ghost",   action: closeModal },
        { label:"Enregistrer", cls:"btn-primary", action: async () => {
           const d = readModalFields();
+          if (d.password && d.password.length < 8) { showModalErrors(["Le mot de passe doit faire au moins 8 caractères."]); return; }
           if (!d.password) delete d.password;
           d.active = d.active === "1";
           const r = await api("PUT", `/api/admin/users/${id}`, d);
+          if (!r) { showModalErrors(["Erreur réseau, veuillez réessayer."]); return; }
           const j = await r.json();
-          if (!r.ok) { showModalErrors([j.error]); return; }
+          if (!r.ok) { showModalErrors([j.error || "Erreur inconnue"]); return; }
           toast("Utilisateur mis à jour ✓"); closeModal(); loadUsers();
        }}]);
   }
 
   async function deleteUser(id, username) {
     if (!confirm(`Supprimer "${username}" ?`)) return;
-    await api("DELETE", `/api/admin/users/${id}`);
+    const res = await api("DELETE", `/api/admin/users/${id}`);
+    if (!res || !res.ok) { toast("Erreur suppression", "err"); return; }
     toast("Utilisateur supprimé ✓"); loadUsers();
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // DIAGNOSTIC BASE DE DONNÉES
+  // ══════════════════════════════════════════════════════════════════════════
+
+  async function openDbDiagnostic() {
+    // Afficher le modal avec loading
+    openModal("🔬 Diagnostic Base de Données", `
+      <div id="diagContent" style="text-align:center;padding:20px;color:var(--muted)">
+        ⏳ Analyse en cours…
+      </div>`, [
+      { label:"Fermer", cls:"btn-ghost", action: closeModal },
+    ]);
+
+    const res = await api("GET", "/api/admin/db/diagnostic");
+    if (!res || !res.ok) {
+      document.getElementById("diagContent").innerHTML = `<p class="error-msg">⚠ Impossible de contacter le serveur.</p>`;
+      return;
+    }
+    const d = await res.json();
+
+    const statusColor = { ok: "var(--green)", warning: "var(--amber)", error: "var(--red)" };
+    const statusIcon  = { ok: "✅", warning: "⚠️", error: "❌" };
+
+    document.getElementById("diagContent").innerHTML = `
+      <div class="diag-section">
+        <div class="diag-title">📦 Base de données</div>
+        <div class="diag-row"><span>Type</span><b>${esc(d.db_type)}</b></div>
+        <div class="diag-row"><span>Taille</span><b>${esc(d.db_size)}</b></div>
+        <div class="diag-row"><span>Statut</span><b style="color:${statusColor[d.status]}">${statusIcon[d.status]} ${esc(d.status_msg)}</b></div>
+      </div>
+      <div class="diag-section">
+        <div class="diag-title">📊 Tables</div>
+        ${d.tables.map(t => `
+          <div class="diag-row">
+            <span>${esc(t.name)}</span>
+            <b>${t.rows} enregistrement(s)</b>
+          </div>`).join("")}
+      </div>
+      <div class="diag-section">
+        <div class="diag-title">🔍 Vérifications</div>
+        ${d.checks.map(c => `
+          <div class="diag-row">
+            <span>${esc(c.label)}</span>
+            <b style="color:${statusColor[c.status]}">${statusIcon[c.status]} ${esc(c.value)}</b>
+          </div>`).join("")}
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
+        <button class="btn btn-amber" id="btnOptimizeDb">⚡ Optimiser</button>
+        <button class="btn btn-ghost"  id="btnVacuumDb">🧹 Nettoyer (VACUUM)</button>
+      </div>
+      <div id="diagActionResult" style="margin-top:10px;font-size:12.5px"></div>`;
+
+    document.getElementById("btnOptimizeDb").onclick = async () => {
+      document.getElementById("diagActionResult").textContent = "⏳ Optimisation…";
+      const r = await api("POST", "/api/admin/db/optimize");
+      const j = r ? await r.json() : null;
+      document.getElementById("diagActionResult").innerHTML = r?.ok
+        ? `<span style="color:var(--green)">✅ ${esc(j.message)}</span>`
+        : `<span style="color:var(--red)">❌ Erreur</span>`;
+    };
+    document.getElementById("btnVacuumDb").onclick = async () => {
+      document.getElementById("diagActionResult").textContent = "⏳ Nettoyage…";
+      const r = await api("POST", "/api/admin/db/vacuum");
+      const j = r ? await r.json() : null;
+      document.getElementById("diagActionResult").innerHTML = r?.ok
+        ? `<span style="color:var(--green)">✅ ${esc(j.message)}</span>`
+        : `<span style="color:var(--red)">❌ Erreur (VACUUM disponible uniquement sur SQLite)</span>`;
+    };
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // CONFIGURATION BASE DE DONNÉES
+  // ══════════════════════════════════════════════════════════════════════════
+
+  async function openDbConfig() {
+    const res = await api("GET", "/api/admin/db/config");
+    const cfg = (res && res.ok) ? await res.json() : { db_type: "sqlite", db_url_masked: "" };
+
+    openModal("🗄️ Configuration Base de Données", `
+      <div style="margin-bottom:16px;padding:12px;background:var(--surface2);border-radius:8px;font-size:12.5px;color:var(--muted)">
+        <b style="color:var(--text)">Base actuelle :</b> ${esc(cfg.db_type.toUpperCase())}
+        ${cfg.db_url_masked ? ` — <code style="font-size:11px">${esc(cfg.db_url_masked)}</code>` : ""}
+      </div>
+      <div class="form-row">
+        <label class="form-label">Type de base de données</label>
+        <select class="form-input" name="db_type" id="dbTypeSelect">
+          <option value="sqlite"     ${cfg.db_type==="sqlite"    ?"selected":""}>SQLite (fichier local)</option>
+          <option value="postgresql" ${cfg.db_type==="postgresql"?"selected":""}>PostgreSQL</option>
+        </select>
+      </div>
+      <div id="sqliteFields" style="${cfg.db_type!=="sqlite"?"display:none":""}">
+        ${fi("Nom du fichier SQLite", "sqlite_file", cfg.sqlite_file||"annuaire.db", "annuaire.db")}
+      </div>
+      <div id="pgFields" style="${cfg.db_type!=="postgresql"?"display:none":""}">
+        ${fi("Hôte",          "pg_host",   cfg.pg_host||"localhost",  "localhost")}
+        ${fi("Port",          "pg_port",   cfg.pg_port||"5432",       "5432")}
+        ${fi("Base",          "pg_db",     cfg.pg_db||"annuaire",     "annuaire")}
+        ${fi("Utilisateur",   "pg_user",   cfg.pg_user||"postgres",   "postgres")}
+        ${fi("Mot de passe",  "pg_pass",   "",                        "••••••••")}
+      </div>
+      <div id="formErrors"></div>
+      <div style="margin-top:12px;font-size:11.5px;color:var(--amber)">
+        ⚠️ Un redémarrage du serveur est nécessaire après changement de base.
+      </div>`,
+      [{ label:"Annuler", cls:"btn-ghost", action: closeModal },
+       { label:"Tester la connexion", cls:"btn-ghost", action: async () => {
+          const d = readModalFields();
+          const url = buildDbUrl(d);
+          if (!url) { showModalErrors(["Configuration incomplète."]); return; }
+          const r = await api("POST", "/api/admin/db/test", { url });
+          if (!r) { showModalErrors(["Erreur réseau."]); return; }
+          const j = await r.json();
+          if (r.ok && j.ok) { document.getElementById("formErrors").innerHTML = `<p style="color:var(--green);font-size:12px">✅ Connexion réussie !</p>`; }
+          else { showModalErrors([j.error || "Connexion échouée"]); }
+       }},
+       { label:"Enregistrer", cls:"btn-primary", action: async () => {
+          const d = readModalFields();
+          const url = buildDbUrl(d);
+          if (!url) { showModalErrors(["Configuration incomplète."]); return; }
+          const r = await api("POST", "/api/admin/db/config", { url });
+          if (!r) { showModalErrors(["Erreur réseau."]); return; }
+          const j = await r.json();
+          if (!r.ok) { showModalErrors([j.error || "Erreur"]); return; }
+          toast("Configuration sauvegardée — redémarrez le serveur ✓");
+          closeModal();
+       }}]);
+
+    // Afficher/masquer les champs selon le type
+    document.getElementById("dbTypeSelect").addEventListener("change", e => {
+      document.getElementById("sqliteFields").style.display = e.target.value === "sqlite"     ? "" : "none";
+      document.getElementById("pgFields").style.display     = e.target.value === "postgresql" ? "" : "none";
+    });
+  }
+
+  function buildDbUrl(d) {
+    if (d.db_type === "sqlite") {
+      const f = (d.sqlite_file || "annuaire.db").trim();
+      return `sqlite:///${f}`;
+    }
+    if (d.db_type === "postgresql") {
+      if (!d.pg_host || !d.pg_db || !d.pg_user) return null;
+      const pass = d.pg_pass ? `:${encodeURIComponent(d.pg_pass)}` : "";
+      return `postgresql://${d.pg_user}${pass}@${d.pg_host}:${d.pg_port||5432}/${d.pg_db}`;
+    }
+    return null;
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -1211,7 +1369,7 @@ const App = (() => {
   // ── API publique ─────────────────────────────────────────────────────────
   return {
     init,
-    export:         exportData,
+    export:           exportData,
     createBackup,
     downloadBackup,
     restoreBackup,
@@ -1224,6 +1382,8 @@ const App = (() => {
     deleteUser,
     _pickKeep,
     _ignoreGroup,
+    openDbDiagnostic,
+    openDbConfig,
   };
 })();
 

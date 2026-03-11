@@ -1,0 +1,33 @@
+Annuaire Neoedge — Historique des versions
+==========================================
+
+v1.3.0 — 2026-03-11
+  CORRECTIONS
+  ~ Fix : restauration sauvegarde (synchronize_session, rollback sur erreur, gestion JSON corrompu)
+  ~ Fix : création utilisateur (res null, formErrors affiché, validation complète)
+  ~ Fix : modification utilisateur (res null, formErrors affiché)
+
+  NOUVEAUTÉS
+  + Choix de base de données (SQLite ou PostgreSQL) depuis le panneau Admin → Config DB
+  + Test de connexion avant de sauvegarder la config DB
+  + Diagnostic DB : état, taille, nb enregistrements par table, vérifications qualité
+  + Diagnostic DB : boutons Optimiser et Nettoyer (VACUUM SQLite)
+
+v1.2.0 — 2026-03-11
+  NOUVEAUTÉS
+  + Doublons : bouton "Ignorer ce groupe" (aucune suppression forcée)
+  + Colonnes : afficher/masquer via menu ⚙ Colonnes (mémorisé)
+  + Colonnes : colonne "Téléphone 2" disponible pour les contacts
+  + Filtres  : filtrer les lignes par colonne en temps réel
+
+v1.1.0 — 2026-03-11
+  CORRECTIONS
+  ~ Fix : ouverture du panneau de modification (sidePanelTitle inexistant)
+  ~ Fix : fermeture du panneau (btnCloseSide dynamique)
+  ~ Fix : notes non remplies à l'édition (textarea sans data-val)
+  ~ Fix : création contact/ROC (crash si res null)
+  ~ Fix : thème dark par défaut + mémorisation localStorage
+  ~ Fix : logo mieux visible en mode light
+
+v1.0.0 — Version originale
+  Version initiale du projet.

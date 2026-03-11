@@ -569,8 +569,25 @@ textarea.field-input { resize: vertical; min-height: 80px; line-height: 1.5; }
 .col-mgr-footer { padding: 8px 14px 2px; border-top: 1px solid var(--border); margin-top: 4px; }
 
 /* ══════════════════════════════════════════════════════
-   SCROLLBAR
+   DIAGNOSTIC DB
    ══════════════════════════════════════════════════════ */
+
+.diag-section {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px 14px; margin-bottom: 12px;
+}
+.diag-title {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .6px; color: var(--accent); margin-bottom: 10px;
+}
+.diag-row {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 12.5px; padding: 4px 0;
+  border-bottom: 1px solid rgba(42,48,80,.3);
+}
+.diag-row:last-child { border: none; }
+.diag-row span { color: var(--muted); }
+.diag-row b { color: var(--text); }
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
