@@ -69,19 +69,42 @@
       <button class="btn btn-green" onclick="App.export('contacts','pdf')">↓ PDF</button>
       <div class="toolbar-sep"></div>
       <button class="btn btn-danger write-only" id="btnDelContacts">🗑 Supprimer</button>
+      <div class="toolbar-sep"></div>
+      <!-- Filtre colonne -->
+      <div class="col-filter-wrap" id="cFilterWrap">
+        <select class="col-filter-select" id="cFilterCol">
+          <option value="">Filtrer par…</option>
+          <option value="societe">Société</option>
+          <option value="nom">Nom</option>
+          <option value="prenom">Prénom</option>
+          <option value="fonction">Fonction</option>
+          <option value="email">Email</option>
+          <option value="telephone">Téléphone</option>
+          <option value="notes">Notes</option>
+        </select>
+        <input class="col-filter-input" id="cFilterVal" type="text" placeholder="Valeur…" style="display:none">
+        <button class="btn btn-ghost btn-sm" id="cFilterClear" style="display:none" title="Effacer filtre">✕</button>
+      </div>
+      <div class="toolbar-sep"></div>
+      <!-- Gestion colonnes -->
+      <div class="col-mgr-wrap" id="cColMgrWrap">
+        <button class="btn btn-ghost btn-sm" id="btnCColMgr">⚙ Colonnes</button>
+        <div class="col-mgr-dropdown" id="cColMgrDropdown" style="display:none"></div>
+      </div>
     </div>
     <div class="table-wrap">
       <table id="contactsTable">
-        <thead><tr>
+        <thead><tr id="contactsHead">
           <th class="col-check"><input type="checkbox" id="checkAllContacts"></th>
-          <th data-sort="societe"  class="sortable sorted-asc">Société</th>
-          <th data-sort="nom"      class="sortable">Nom</th>
-          <th data-sort="prenom"   class="sortable">Prénom</th>
-          <th data-sort="fonction" class="sortable">Fonction</th>
-          <th data-sort="email"    class="sortable">Email</th>
-          <th>Téléphone</th>
-          <th>Notes</th>
-          <th>Modifié par</th>
+          <th data-sort="societe"  data-col="societe"  class="sortable sorted-asc">Société</th>
+          <th data-sort="nom"      data-col="nom"       class="sortable">Nom</th>
+          <th data-sort="prenom"   data-col="prenom"    class="sortable">Prénom</th>
+          <th data-sort="fonction" data-col="fonction"  class="sortable">Fonction</th>
+          <th data-sort="email"    data-col="email"     class="sortable">Email</th>
+          <th data-col="telephone">Téléphone</th>
+          <th data-col="telephone2">Téléphone 2</th>
+          <th data-col="notes">Notes</th>
+          <th data-col="updated_by">Modifié par</th>
         </tr></thead>
         <tbody id="contactsTbody"></tbody>
       </table>
@@ -106,19 +129,41 @@
       <button class="btn btn-green" onclick="App.export('rocs','pdf')">↓ PDF</button>
       <div class="toolbar-sep"></div>
       <button class="btn btn-danger write-only" id="btnDelRocs">🗑 Supprimer</button>
+      <div class="toolbar-sep"></div>
+      <!-- Filtre colonne -->
+      <div class="col-filter-wrap" id="rFilterWrap">
+        <select class="col-filter-select" id="rFilterCol">
+          <option value="">Filtrer par…</option>
+          <option value="nom_client">Nom Client</option>
+          <option value="roc">ROC</option>
+          <option value="trinity">Trinity</option>
+          <option value="infogerance">Infogérance</option>
+          <option value="astreinte">Astreinte</option>
+          <option value="type_contrat">Type Contrat</option>
+          <option value="date_anniversaire_contrat">Date Anniversaire</option>
+        </select>
+        <input class="col-filter-input" id="rFilterVal" type="text" placeholder="Valeur…" style="display:none">
+        <button class="btn btn-ghost btn-sm" id="rFilterClear" style="display:none" title="Effacer filtre">✕</button>
+      </div>
+      <div class="toolbar-sep"></div>
+      <!-- Gestion colonnes -->
+      <div class="col-mgr-wrap" id="rColMgrWrap">
+        <button class="btn btn-ghost btn-sm" id="btnRColMgr">⚙ Colonnes</button>
+        <div class="col-mgr-dropdown" id="rColMgrDropdown" style="display:none"></div>
+      </div>
     </div>
     <div class="table-wrap">
       <table id="rocsTable">
-        <thead><tr>
+        <thead><tr id="rocsHead">
           <th class="col-check"><input type="checkbox" id="checkAllRocs"></th>
-          <th data-sort="nom_client"   class="sortable sorted-asc">Nom Client</th>
-          <th data-sort="roc"          class="sortable">ROC</th>
-          <th data-sort="trinity"      class="sortable">Trinity</th>
-          <th>Infogérance</th>
-          <th>Astreinte</th>
-          <th data-sort="type_contrat" class="sortable">Type Contrat</th>
-          <th>Date Anniversaire</th>
-          <th>Modifié par</th>
+          <th data-sort="nom_client"   data-col="nom_client"                class="sortable sorted-asc">Nom Client</th>
+          <th data-sort="roc"          data-col="roc"                        class="sortable">ROC</th>
+          <th data-sort="trinity"      data-col="trinity"                    class="sortable">Trinity</th>
+          <th data-col="infogerance">Infogérance</th>
+          <th data-col="astreinte">Astreinte</th>
+          <th data-sort="type_contrat" data-col="type_contrat"               class="sortable">Type Contrat</th>
+          <th data-col="date_anniversaire_contrat">Date Anniversaire</th>
+          <th data-col="updated_by">Modifié par</th>
         </tr></thead>
         <tbody id="rocsTbody"></tbody>
       </table>

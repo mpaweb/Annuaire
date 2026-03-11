@@ -519,6 +519,54 @@ textarea.field-input { resize: vertical; min-height: 80px; line-height: 1.5; }
 .dup-keep-btn { margin-left: auto; padding: 3px 9px; border-radius: 5px; font-size: 11px; font-weight: 600; cursor: pointer; border: none; background: rgba(79,142,247,.15); color: var(--accent); transition: background .15s; }
 .dup-keep-btn:hover { background: rgba(79,142,247,.3); }
 .dup-keep-btn.selected { background: var(--accent); color: white; }
+.dup-ignore-btn { font-size: 11px; }
+
+/* ══════════════════════════════════════════════════════
+   FILTRE PAR COLONNE
+   ══════════════════════════════════════════════════════ */
+
+.col-filter-wrap {
+  display: flex; align-items: center; gap: 5px;
+}
+.col-filter-select {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 7px; padding: 5px 9px;
+  color: var(--text); font-family: inherit; font-size: 12.5px;
+  outline: none; cursor: pointer; transition: border-color .2s;
+}
+.col-filter-select:focus { border-color: var(--accent); }
+.col-filter-input {
+  background: var(--bg); border: 1px solid var(--accent);
+  border-radius: 7px; padding: 5px 9px;
+  color: var(--text); font-family: inherit; font-size: 12.5px;
+  outline: none; width: 130px; transition: box-shadow .2s;
+}
+.col-filter-input:focus { box-shadow: 0 0 0 3px rgba(79,142,247,.15); }
+
+/* ══════════════════════════════════════════════════════
+   GESTIONNAIRE DE COLONNES
+   ══════════════════════════════════════════════════════ */
+
+.col-mgr-wrap { position: relative; }
+.col-mgr-dropdown {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 50;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 8px 0; min-width: 180px;
+  box-shadow: var(--shadow);
+}
+.col-mgr-title {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .6px; color: var(--muted);
+  padding: 4px 14px 8px; border-bottom: 1px solid var(--border); margin-bottom: 4px;
+}
+.col-mgr-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 6px 14px; cursor: pointer; font-size: 12.5px;
+  transition: background .12s;
+}
+.col-mgr-item:hover { background: var(--surface2); }
+.col-mgr-item input[type=checkbox] { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; }
+.col-mgr-footer { padding: 8px 14px 2px; border-top: 1px solid var(--border); margin-top: 4px; }
 
 /* ══════════════════════════════════════════════════════
    SCROLLBAR

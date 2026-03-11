@@ -15,6 +15,12 @@ const App = (() => {
     cSearch:   "",
     selectedC: new Set(),
     selectedR: new Set(),
+    // Colonnes visibles (null = toutes visibles par défaut)
+    cCols: null,
+    rCols: null,
+    // Filtre actif par colonne
+    cFilter: { col: "", val: "" },
+    rFilter: { col: "", val: "" },
   };
 
   // ── Réseau ────────────────────────────────────────────────────────────────
@@ -58,6 +64,12 @@ const App = (() => {
     // Thème : priorité à localStorage, puis préférence serveur, sinon dark par défaut
     const savedTheme = localStorage.getItem("neoedge_theme") || state.user.theme || "dark";
     applyTheme(savedTheme);
+
+    // Colonnes sauvegardées
+    const savedCCols = localStorage.getItem("neoedge_cCols");
+    const savedRCols = localStorage.getItem("neoedge_rCols");
+    state.cCols = savedCCols ? JSON.parse(savedCCols) : null;
+    state.rCols = savedRCols ? JSON.parse(savedRCols) : null;
 
     // Logo
     loadLogo();
@@ -241,22 +253,62 @@ const App = (() => {
     document.getElementById("contactShown").textContent = data.results.length;
   }
 
+  // Définition des colonnes contacts
+  const CONTACT_COLS = [
+    { key: "societe",    label: "Société",      default: true  },
+    { key: "nom",        label: "Nom",          default: true  },
+    { key: "prenom",     label: "Prénom",       default: true  },
+    { key: "fonction",   label: "Fonction",     default: true  },
+    { key: "email",      label: "Email",        default: true  },
+    { key: "telephone",  label: "Téléphone",    default: true  },
+    { key: "telephone2", label: "Téléphone 2",  default: false },
+    { key: "notes",      label: "Notes",        default: true  },
+    { key: "updated_by", label: "Modifié par",  default: true  },
+  ];
+
+  function getVisibleCCols() {
+    if (!state.cCols) return CONTACT_COLS.filter(c => c.default).map(c => c.key);
+    return state.cCols;
+  }
+
   function renderContacts() {
+    const visible = getVisibleCCols();
+    // Mettre à jour l'en-tête
+    const headRow = document.getElementById("contactsHead");
+    if (headRow) {
+      Array.from(headRow.querySelectorAll("th[data-col]")).forEach(th => {
+        th.style.display = visible.includes(th.dataset.col) ? "" : "none";
+      });
+    }
+
     const tbody = document.getElementById("contactsTbody");
     tbody.innerHTML = "";
-    state.contacts.forEach((c, i) => {
+
+    // Appliquer le filtre colonne
+    let rows = state.contacts;
+    if (state.cFilter.col && state.cFilter.val) {
+      const val = state.cFilter.val.toLowerCase();
+      rows = rows.filter(c => (c[state.cFilter.col] || "").toLowerCase().includes(val));
+    }
+
+    // Mettre à jour le compteur affiché
+    document.getElementById("contactShown").textContent = rows.length;
+
+    rows.forEach(c => {
       const tr = document.createElement("tr");
       if (state.selectedC.has(c.id)) tr.classList.add("selected");
-      tr.innerHTML = `
-        <td class="col-check"><input type="checkbox" data-id="${c.id}" ${state.selectedC.has(c.id) ? "checked" : ""}></td>
-        <td><b>${esc(c.societe)}</b></td>
-        <td>${esc(c.nom)}</td>
-        <td>${esc(c.prenom)}</td>
-        <td><span style="background:rgba(79,142,247,.1);color:var(--accent);border-radius:4px;padding:2px 7px;font-size:11.5px">${esc(c.fonction)}</span></td>
-        <td class="mono">${esc(c.email)}</td>
-        <td class="mono">${esc(c.telephone)}</td>
-        <td class="note">${esc(c.notes).substring(0, 55)}${c.notes.length > 55 ? "…" : ""}</td>
-        <td class="by">${esc(c.updated_by)}</td>`;
+
+      let cells = `<td class="col-check"><input type="checkbox" data-id="${c.id}" ${state.selectedC.has(c.id) ? "checked" : ""}></td>`;
+      CONTACT_COLS.forEach(col => {
+        if (!visible.includes(col.key)) return;
+        if (col.key === "societe")   cells += `<td><b>${esc(c.societe)}</b></td>`;
+        else if (col.key === "fonction") cells += `<td><span style="background:rgba(79,142,247,.1);color:var(--accent);border-radius:4px;padding:2px 7px;font-size:11.5px">${esc(c.fonction)}</span></td>`;
+        else if (col.key === "email" || col.key === "telephone" || col.key === "telephone2") cells += `<td class="mono">${esc(c[col.key])}</td>`;
+        else if (col.key === "notes") cells += `<td class="note">${esc(c.notes).substring(0,55)}${c.notes.length>55?"…":""}</td>`;
+        else if (col.key === "updated_by") cells += `<td class="by">${esc(c.updated_by)}</td>`;
+        else cells += `<td>${esc(c[col.key]||"")}</td>`;
+      });
+      tr.innerHTML = cells;
       tr.querySelector("input[type=checkbox]").addEventListener("change", e => {
         e.stopPropagation();
         toggleSel(state.selectedC, c.id, e.target.checked);
@@ -283,22 +335,58 @@ const App = (() => {
     document.getElementById("rocShown").textContent = data.results.length;
   }
 
+  // Définition des colonnes ROC
+  const ROC_COLS = [
+    { key: "nom_client",                label: "Nom Client",       default: true  },
+    { key: "roc",                       label: "ROC",              default: true  },
+    { key: "trinity",                   label: "Trinity",          default: true  },
+    { key: "infogerance",               label: "Infogérance",      default: true  },
+    { key: "astreinte",                 label: "Astreinte",        default: true  },
+    { key: "type_contrat",              label: "Type Contrat",     default: true  },
+    { key: "date_anniversaire_contrat", label: "Date Anniversaire",default: true  },
+    { key: "updated_by",                label: "Modifié par",      default: true  },
+  ];
+
+  function getVisibleRCols() {
+    if (!state.rCols) return ROC_COLS.filter(c => c.default).map(c => c.key);
+    return state.rCols;
+  }
+
   function renderRocs() {
+    const visible = getVisibleRCols();
+    // Mettre à jour l'en-tête
+    const headRow = document.getElementById("rocsHead");
+    if (headRow) {
+      Array.from(headRow.querySelectorAll("th[data-col]")).forEach(th => {
+        th.style.display = visible.includes(th.dataset.col) ? "" : "none";
+      });
+    }
+
     const tbody = document.getElementById("rocsTbody");
     tbody.innerHTML = "";
-    state.rocs.forEach(r => {
+
+    // Appliquer le filtre colonne
+    let rows = state.rocs;
+    if (state.rFilter.col && state.rFilter.val) {
+      const val = state.rFilter.val.toLowerCase();
+      rows = rows.filter(r => (r[state.rFilter.col] || "").toLowerCase().includes(val));
+    }
+
+    document.getElementById("rocShown").textContent = rows.length;
+
+    rows.forEach(r => {
       const tr = document.createElement("tr");
       if (state.selectedR.has(r.id)) tr.classList.add("selected");
-      tr.innerHTML = `
-        <td class="col-check"><input type="checkbox" data-id="${r.id}" ${state.selectedR.has(r.id) ? "checked" : ""}></td>
-        <td><b>${esc(r.nom_client)}</b></td>
-        <td class="mono">${esc(r.roc)}</td>
-        <td class="mono">${esc(r.trinity)}</td>
-        <td>${esc(r.infogerance)}</td>
-        <td>${esc(r.astreinte)}</td>
-        <td>${esc(r.type_contrat)}</td>
-        <td class="mono">${esc(r.date_anniversaire_contrat)}</td>
-        <td class="by">${esc(r.updated_by)}</td>`;
+
+      let cells = `<td class="col-check"><input type="checkbox" data-id="${r.id}" ${state.selectedR.has(r.id) ? "checked" : ""}></td>`;
+      ROC_COLS.forEach(col => {
+        if (!visible.includes(col.key)) return;
+        if (col.key === "nom_client") cells += `<td><b>${esc(r.nom_client)}</b></td>`;
+        else if (col.key === "roc" || col.key === "trinity" || col.key === "date_anniversaire_contrat") cells += `<td class="mono">${esc(r[col.key]||"")}</td>`;
+        else if (col.key === "updated_by") cells += `<td class="by">${esc(r.updated_by)}</td>`;
+        else cells += `<td>${esc(r[col.key]||"")}</td>`;
+      });
+      tr.innerHTML = cells;
       tr.querySelector("input[type=checkbox]").addEventListener("change", e => {
         e.stopPropagation();
         toggleSel(state.selectedR, r.id, e.target.checked);
@@ -483,7 +571,8 @@ const App = (() => {
           const json = await res.json();
           if (!res.ok) { showModalErrors(json.errors || [json.error || "Erreur inconnue"]); return; }
           toast("Contact créé ✓"); closeModal(); await loadContacts();
-       }}]);\n  }
+       }}]);
+  }
 
   function openNewRocModal() {
     openModal("Nouveau ROC", `
@@ -681,28 +770,47 @@ const App = (() => {
     if (data.total_groups === 0) { toast("Aucun doublon détecté ✓"); return; }
 
     let html = `<p style="color:var(--muted);font-size:12.5px;margin-bottom:14px">
-      ${data.total_groups} groupe(s) de doublons détecté(s).</p>`;
+      ${data.total_groups} groupe(s) de doublons détecté(s).<br>
+      <span style="font-size:11.5px">Pour chaque groupe : choisissez lequel <b>conserver</b>, ou cliquez <b>Ignorer</b> pour ne rien faire.</span></p>`;
+
     data.groups.forEach((g, gi) => {
       html += `<div class="dup-group">
-        <div class="dup-group-header">🔍 ${esc(g.reason)} — <b>${esc(g.key)}</b></div>`;
+        <div class="dup-group-header" style="display:flex;align-items:center;justify-content:space-between">
+          <span>🔍 ${esc(g.reason)} — <b>${esc(g.key)}</b></span>
+          <button class="dup-ignore-btn btn btn-ghost btn-sm" data-gi="${gi}" onclick="App._ignoreGroup(this,${gi})">Ignorer ce groupe</button>
+        </div>`;
       g.records.forEach(r => {
         const label = table === "contacts"
           ? `${r.societe} / ${r.nom} ${r.prenom} — ${r.email}`
           : `${r.nom_client} / ${r.roc}`;
-        html += `<div class="dup-record">
+        html += `<div class="dup-record" data-gi="${gi}">
           <span>${esc(label)}</span>
           <button class="dup-keep-btn" data-gi="${gi}" data-id="${r.id}" onclick="App._pickKeep(this,${gi})">Conserver</button>
         </div>`;
       });
       html += `</div>`;
     });
-    window._dupGroups = data.groups;
-    window._dupTable  = table;
+    window._dupGroups  = data.groups;
+    window._dupTable   = table;
+    window._dupIgnored = new Set();
 
     openModal(`Doublons — ${table}`, html, [
-      { label:"Annuler",  cls:"btn-ghost",   action: closeModal },
-      { label:"Fusionner",cls:"btn-primary", action: mergeDuplicates },
+      { label:"Annuler",   cls:"btn-ghost",   action: closeModal },
+      { label:"Appliquer", cls:"btn-primary",  action: mergeDuplicates },
     ]);
+  }
+
+  function _ignoreGroup(btn, gi) {
+    // Marquer le groupe comme ignoré visuellement
+    window._dupIgnored = window._dupIgnored || new Set();
+    window._dupIgnored.add(gi);
+    // Désélectionner tout bouton "Conserver" de ce groupe
+    document.querySelectorAll(`.dup-keep-btn[data-gi="${gi}"]`).forEach(b => b.classList.remove("selected"));
+    // Griser le groupe
+    const group = btn.closest(".dup-group");
+    if (group) { group.style.opacity = "0.4"; group.style.pointerEvents = "none"; }
+    btn.style.pointerEvents = "none";
+    toast("Groupe ignoré", "ok");
   }
 
   function _pickKeep(btn, gi) {
@@ -711,19 +819,32 @@ const App = (() => {
   }
 
   async function mergeDuplicates() {
-    const groups = window._dupGroups || [];
-    const table  = window._dupTable;
-    let merged   = 0;
+    const groups  = window._dupGroups || [];
+    const table   = window._dupTable;
+    const ignored = window._dupIgnored || new Set();
+    let merged    = 0;
+    let skipped   = 0;
+
     for (const g of groups) {
-      const gi  = groups.indexOf(g);
+      const gi = groups.indexOf(g);
+      // Groupe ignoré → on ne touche à rien
+      if (ignored.has(gi)) { skipped++; continue; }
+
       const btn = document.querySelector(`.dup-keep-btn[data-gi="${gi}"].selected`);
-      if (!btn) continue;
+      // Pas de sélection dans ce groupe → on ignore aussi
+      if (!btn) { skipped++; continue; }
+
       const keepId = parseInt(btn.dataset.id);
       const delIds = g.records.map(r => r.id).filter(id => id !== keepId);
       const res    = await api("POST", `/api/duplicates/${table}/merge`, { keep_id: keepId, delete_ids: delIds });
       if (res && res.ok) merged += (await res.json()).deleted;
     }
-    toast(`${merged} doublon(s) fusionné(s) ✓`);
+
+    if (merged === 0 && skipped === groups.length) {
+      toast("Aucune fusion effectuée — tous les groupes ont été ignorés ou laissés sans sélection.", "ok");
+    } else {
+      toast(`${merged} doublon(s) fusionné(s)${skipped ? ` · ${skipped} groupe(s) ignoré(s)` : ""} ✓`);
+    }
     closeModal();
     if (table === "contacts") await loadContacts(); else await loadRocs();
   }
@@ -965,6 +1086,126 @@ const App = (() => {
     // Tri
     bindSort("contactsTable", loadContacts, state.cSort);
     bindSort("rocsTable",     loadRocs,     state.rSort);
+
+    // ── Filtre par colonne — Contacts ──
+    const cFilterCol   = document.getElementById("cFilterCol");
+    const cFilterVal   = document.getElementById("cFilterVal");
+    const cFilterClear = document.getElementById("cFilterClear");
+    cFilterCol.addEventListener("change", () => {
+      const col = cFilterCol.value;
+      state.cFilter.col = col;
+      state.cFilter.val = "";
+      cFilterVal.value  = "";
+      cFilterVal.style.display  = col ? "" : "none";
+      cFilterClear.style.display = col ? "" : "none";
+      renderContacts();
+    });
+    cFilterVal.addEventListener("input", () => {
+      state.cFilter.val = cFilterVal.value;
+      renderContacts();
+    });
+    cFilterClear.addEventListener("click", () => {
+      state.cFilter = { col: "", val: "" };
+      cFilterCol.value = "";
+      cFilterVal.value = "";
+      cFilterVal.style.display   = "none";
+      cFilterClear.style.display = "none";
+      renderContacts();
+    });
+
+    // ── Filtre par colonne — ROC ──
+    const rFilterCol   = document.getElementById("rFilterCol");
+    const rFilterVal   = document.getElementById("rFilterVal");
+    const rFilterClear = document.getElementById("rFilterClear");
+    rFilterCol.addEventListener("change", () => {
+      const col = rFilterCol.value;
+      state.rFilter.col = col;
+      state.rFilter.val = "";
+      rFilterVal.value  = "";
+      rFilterVal.style.display   = col ? "" : "none";
+      rFilterClear.style.display = col ? "" : "none";
+      renderRocs();
+    });
+    rFilterVal.addEventListener("input", () => {
+      state.rFilter.val = rFilterVal.value;
+      renderRocs();
+    });
+    rFilterClear.addEventListener("click", () => {
+      state.rFilter = { col: "", val: "" };
+      rFilterCol.value = "";
+      rFilterVal.value = "";
+      rFilterVal.style.display   = "none";
+      rFilterClear.style.display = "none";
+      renderRocs();
+    });
+
+    // ── Gestionnaire de colonnes — Contacts ──
+    const btnCColMgr      = document.getElementById("btnCColMgr");
+    const cColMgrDropdown = document.getElementById("cColMgrDropdown");
+    btnCColMgr.addEventListener("click", e => {
+      e.stopPropagation();
+      const open = cColMgrDropdown.style.display !== "none";
+      closeAllDropdowns();
+      if (!open) {
+        buildColDropdown(cColMgrDropdown, CONTACT_COLS, getVisibleCCols(), "neoedge_cCols", keys => {
+          state.cCols = keys;
+          if (!keys) state.cCols = null;
+          renderContacts();
+        });
+        cColMgrDropdown.style.display = "";
+      }
+    });
+
+    // ── Gestionnaire de colonnes — ROC ──
+    const btnRColMgr      = document.getElementById("btnRColMgr");
+    const rColMgrDropdown = document.getElementById("rColMgrDropdown");
+    btnRColMgr.addEventListener("click", e => {
+      e.stopPropagation();
+      const open = rColMgrDropdown.style.display !== "none";
+      closeAllDropdowns();
+      if (!open) {
+        buildColDropdown(rColMgrDropdown, ROC_COLS, getVisibleRCols(), "neoedge_rCols", keys => {
+          state.rCols = keys;
+          if (!keys) state.rCols = null;
+          renderRocs();
+        });
+        rColMgrDropdown.style.display = "";
+      }
+    });
+
+    // Fermer les dropdowns au clic ailleurs
+    document.addEventListener("click", closeAllDropdowns);
+  }
+
+  function closeAllDropdowns() {
+    document.getElementById("cColMgrDropdown").style.display = "none";
+    document.getElementById("rColMgrDropdown").style.display = "none";
+  }
+
+  function buildColDropdown(container, colDefs, visible, storageKey, onChange) {
+    container.innerHTML = `<div class="col-mgr-title">Colonnes visibles</div>` +
+      colDefs.map(col => `
+        <label class="col-mgr-item">
+          <input type="checkbox" data-col="${col.key}" ${visible.includes(col.key) ? "checked" : ""}>
+          <span>${col.label}</span>
+        </label>`).join("") +
+      `<div class="col-mgr-footer">
+        <button class="btn btn-ghost btn-sm col-mgr-reset">Réinitialiser</button>
+       </div>`;
+
+    container.querySelectorAll("input[type=checkbox]").forEach(cb => {
+      cb.addEventListener("change", () => {
+        const checked = Array.from(container.querySelectorAll("input[type=checkbox]:checked")).map(i => i.dataset.col);
+        if (checked.length === 0) { cb.checked = true; return; } // au moins 1 colonne
+        localStorage.setItem(storageKey, JSON.stringify(checked));
+        onChange(checked);
+      });
+    });
+    container.querySelector(".col-mgr-reset").addEventListener("click", () => {
+      localStorage.removeItem(storageKey);
+      onChange(null); // null = défaut
+      closeAllDropdowns();
+    });
   }
 
   // ── API publique ─────────────────────────────────────────────────────────
@@ -982,6 +1223,7 @@ const App = (() => {
     openEditUser,
     deleteUser,
     _pickKeep,
+    _ignoreGroup,
   };
 })();
 
